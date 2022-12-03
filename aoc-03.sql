@@ -47,7 +47,39 @@ double AS (
   )
   WHERE h1.side = 0
   GROUP BY 1
+),
+groups_of_three AS (
+  SELECT
+    *,
+    (id-1) / 3 AS cat
+  FROM halfs
+),
+double_from_three AS (
+  SELECT
+    h1.id AS h1id,
+    h2.id AS h2id,
+    h2.c,
+    h1.value,
+    h1.cat
+  FROM groups_of_three h1 JOIN groups_of_three h2 ON (
+    h1.id != h2.id
+    AND h1.cat = h2.cat
+    AND h1.c = h2.c
+  )
+),
+triple_from_three AS (
+  SELECT
+    g1.cat,
+    g1.c,
+    g1.value
+  FROM double_from_three g1 JOIN double_from_three g2 ON (
+    g1.h1id != g2.h2id
+    AND g1.h2id = g2.h1id
+    AND g1.c = g2.c
+  )
+  GROUP BY 1
 )
 
 -- SELECT * FROM double;
-SELECT SUM(value) AS sum FROM double;
+-- SELECT SUM(value) AS sum FROM double;
+SELECT SUM(value) AS sum FROM triple_from_three
