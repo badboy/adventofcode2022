@@ -42,9 +42,23 @@ WITH RECURSIVE traverse(x, dir, y, obj) AS (
   FROM dir LEFT JOIN fs ON fs.path = dir.path
   GROUP BY dir
   ORDER BY dir
+), needed AS (
+  SELECT 30000000 - (70000000 - size) AS size
+  FROM grouped_dir
+  WHERE dir = '/'
 )
 
+-- part 1
+--SELECT
+--  sum(size) as size
+--FROM grouped_dir
+--WHERE size < 100000
+
+-- part 2
 SELECT
-  sum(size) as size
-FROM grouped_dir
-WHERE size < 100000
+  g.dir,
+  g.size
+FROM grouped_dir g, needed
+WHERE g.size >= needed.size
+ORDER BY g.size ASC
+LIMIT 1
