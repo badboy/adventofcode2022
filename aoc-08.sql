@@ -1,4 +1,6 @@
 CREATE TABLE data(raw VARCHAR);
+-- from sqlean, needed for `eval`
+.load ./define.dylib
 .import input08.txt data
 
 -- x -> left-to-right
@@ -74,5 +76,66 @@ WITH from_right AS (
   UNION
   SELECT * FROM from_bottom
 )
+-- part 1
+SELECT COUNT(*) + (SELECT count FROM border_tree_count LIMIT 1) AS total_visible FROM visible_inner;
 
-SELECT COUNT(*) + (SELECT count FROM border_tree_count LIMIT 1) AS total_visible FROM visible_inner
+WITH dist_top AS (
+  SELECT
+    f.x, f.y, f.c,
+    ABS(f.y - COALESCE(
+      (SELECT MAX(i.y) FROM forest i WHERE i.x = f.x AND i.y < f.y AND i.c >= f.c),
+      (SELECT MIN(y) FROM forest)
+    )) AS dist
+  FROM inner_forest f
+  GROUP BY 1, 2
+)
+
+, dist_left AS (
+  SELECT
+    f.x, f.y, f.c,
+    ABS(f.x - COALESCE(
+      (SELECT MAX(i.x) FROM forest i WHERE i.x < f.x AND i.y = f.y AND i.c >= f.c),
+      (SELECT MIN(x) FROM forest)
+    )) AS dist
+  FROM inner_forest f
+  GROUP BY 1, 2
+)
+
+, dist_right AS (
+  SELECT
+    f.x, f.y, f.c,
+    ABS(f.x - COALESCE(
+      (SELECT MIN(i.x) FROM forest i WHERE i.x > f.x AND i.y = f.y AND i.c >= f.c),
+      (SELECT MAX(x) FROM forest)
+    )) AS dist
+  FROM inner_forest f
+  GROUP BY 1, 2
+)
+
+, dist_bottom AS (
+  SELECT
+    f.x, f.y, f.c,
+    ABS(f.y - COALESCE(
+      (SELECT MIN(i.y) FROM forest i WHERE i.x = f.x AND i.y > f.y AND i.c >= f.c),
+      (SELECT MAX(y) FROM forest)
+    )) AS dist
+  FROM inner_forest f
+  GROUP BY 1, 2
+)
+
+, dist_all AS (
+  SELECT * FROM dist_top
+  UNION ALL
+  SELECT * FROM dist_left
+  UNION ALL
+  SELECT * FROM dist_right
+  UNION ALL
+  SELECT * FROM dist_bottom
+)
+
+-- part 2
+SELECT CAST(eval('select ' || group_concat(dist, '*')) as INT) as dist
+FROM dist_all
+GROUP BY x, y
+ORDER BY 1 DESC
+LIMIT 1
